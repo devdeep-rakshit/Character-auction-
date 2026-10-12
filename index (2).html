@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080b14">
+<title>Character Auction</title>
+<style>
+:root{--bg:#080b14;--panel:#11182a;--border:#293651;--blue:#42caff;--purple:#a78bfa;--green:#19d89a;--red:#ff5268;--text:#f4f7ff;--muted:#99a8c4}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#172442,var(--bg) 65%);color:var(--text);font-family:system-ui,Arial,sans-serif;min-height:100vh}
+button,input,textarea{font:inherit}button{border:0;cursor:pointer;border-radius:10px;padding:12px 14px;font-weight:750;touch-action:manipulation}button:active{transform:scale(.98)}button:disabled{opacity:.35;cursor:not-allowed}
+input,textarea{background:#080e1c;color:white;border:1px solid #344463;border-radius:9px;padding:12px;width:100%;outline:none}input:focus,textarea:focus{border-color:var(--blue)}
+header{text-align:center;padding:22px 12px 14px}header h1{margin:0;font-size:clamp(25px,7vw,38px);letter-spacing:1px;background:linear-gradient(90deg,var(--blue),var(--purple));color:transparent;background-clip:text}header p{color:var(--muted);font-size:13px;margin:7px 0 0}
+main{max-width:760px;margin:auto;padding:10px 12px 30px}.panel{background:rgba(17,24,42,.96);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px}.section-title{font-size:12px;color:var(--muted);letter-spacing:1.3px;font-weight:800;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.setup-bottom{margin-top:12px}.primary{background:linear-gradient(100deg,#2563eb,#7138e8);color:white}.green{background:#087f5b;color:white}.red{background:#8e2034;color:white}.gold{background:#a66a09;color:white}.outline{background:#1b2740;color:white;border:1px solid #354867}.full{width:100%}.hidden{display:none!important}.notice{text-align:center;font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+.auction-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}.status{color:var(--green);font-size:12px;font-weight:800;letter-spacing:1px}.round{color:var(--muted);font-size:12px}
+.character{text-align:center;padding:22px 12px;border-radius:15px;border:1px solid #2b5d91;background:linear-gradient(135deg,#102849,#17152f)}.character .label{color:var(--blue);font-size:11px;font-weight:800;letter-spacing:1.7px}.character h2{font-size:clamp(26px,8vw,38px);margin:12px 0 16px;overflow-wrap:anywhere}.character input{max-width:430px;text-align:center;font-size:16px;margin-bottom:9px}.bid-info{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:10px}.bid-number{font-size:12px;color:var(--muted)}.bid-number strong{color:white;font-size:21px}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.player{background:linear-gradient(155deg,#101d32,#111425);border:1px solid #24567b;border-radius:14px;padding:13px;min-width:0}.player:nth-child(even){border-color:#6840a0}.player-name{font-size:17px;font-weight:800;overflow-wrap:anywhere}.player-label{color:var(--muted);font-size:11px}.budget{font-size:clamp(30px,8vw,40px);font-weight:900;color:var(--blue);margin:8px 0 0;line-height:1.2}.budget small{font-size:12px}
+.current-bid{display:flex;justify-content:space-between;align-items:center;gap:5px;border-top:1px solid var(--border);margin-top:12px;padding-top:10px}.current-bid strong{font-size:22px}.bid-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.bid-controls button{padding:12px 5px;font-size:13px}.bid-plus{color:#041d17;background:var(--green);font-size:17px!important}.bid-minus{background:#29344a;color:white}.win-button{grid-column:1/-1;background:#4931bf;color:white}.character-list{color:#c5d4f2;font-size:12px;margin-top:12px;border-top:1px solid var(--border);padding-top:10px;overflow-wrap:anywhere}.character-list strong{color:white}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions button{font-size:13px;padding:12px 7px}#winnerBanner{text-align:center;color:var(--green);font-weight:800;font-size:16px;padding:10px;line-height:1.4}
+#awardModal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
+#awardModal.hidden{display:none!important}
+.award-backdrop{position:absolute;inset:0;background:rgba(2,6,18,.78);backdrop-filter:blur(7px)}
+.award-dialog{position:relative;width:100%;max-width:380px;padding:25px 21px 20px;text-align:center;background:linear-gradient(155deg,#172640,#17172d);border:1px solid #3c5480;border-radius:22px;box-shadow:0 24px 80px #0009;animation:modalIn .18s ease-out}
+.award-icon{font-size:34px;margin-bottom:6px}
+.award-eyebrow{font-size:11px;letter-spacing:2px;color:var(--blue);font-weight:850}
+.award-dialog h3{font-size:24px;margin:8px 0 10px}
+.award-dialog p{color:#c4d0e8;line-height:1.55;font-size:15px;margin:0 0 22px;overflow-wrap:anywhere}
+.award-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.award-actions button{min-height:48px}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:420px){.award-dialog{padding:22px 16px 16px;border-radius:20px}.award-dialog h3{font-size:22px}}
+/* Mobile-first refinements */
+@media(max-width:700px){
+  header{padding:18px 14px 12px}
+  header h1{font-size:clamp(24px,7vw,34px);line-height:1.12}
+  header p{font-size:13px;line-height:1.45}
+  main{padding:8px 10px 24px}
+  .panel{padding:14px;border-radius:15px;margin-bottom:12px}
+  .auction-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .auction-top .status{grid-column:1}
+  .auction-top .round{grid-column:1;grid-row:2}
+  .auction-top button{grid-column:2;grid-row:1/3;max-width:150px;white-space:normal}
+  .character{padding:20px 12px}
+  .character h2{font-size:32px;margin:10px 0 16px}
+  .character #nextCharacterBtn{width:100%;max-width:360px;white-space:normal}
+  .players{grid-template-columns:1fr;gap:12px;margin-top:12px}
+  .player{padding:16px;border-radius:16px}
+  .player-name{font-size:20px}
+  .budget{font-size:38px}
+  .current-bid strong{font-size:24px}
+  .bid-controls{gap:8px}
+  .bid-controls button{min-height:48px;padding:11px 8px;font-size:14px}
+  .bid-plus{font-size:17px!important}
+  .win-button{min-height:50px}
+  .actions{gap:8px}
+  .actions button{min-height:46px;font-size:14px;padding:11px 8px}
+  .grid{grid-template-columns:1fr 1fr}
+  .field input,.field textarea{font-size:16px}
+}
+@media(max-width:420px){
+  .grid{grid-template-columns:1fr}
+  .auction-top button{font-size:12px;padding:10px}
+  .bid-controls button{font-size:13px}
+}
+
+/* Compact phone auction view: keep both players' bidding controls side by side. */
+@media (max-width: 700px) {
+  body { font-size: 14px; }
+  header { padding: 10px 10px 4px !important; }
+  header h1 { font-size: 25px !important; margin: 0 0 4px !important; }
+  header p { font-size: 11px !important; margin: 0 !important; }
+  main { padding: 5px 8px 14px !important; }
+  .auction-top { margin: 4px 0 8px !important; gap: 6px !important; }
+  .auction-top button, #newAuction { padding: 8px 10px !important; font-size: 12px !important; }
+  .character { padding: 10px 10px !important; margin-bottom: 8px !important; }
+  .character .eyebrow, .character-label { font-size: 10px !important; letter-spacing: 1px !important; }
+  .character h2 { font-size: 25px !important; margin: 5px 0 8px !important; }
+  #nextCharacterBtn { padding: 10px 8px !important; font-size: 14px !important; }
+  .character .subtext, #poolStatus { font-size: 11px !important; line-height: 1.3 !important; margin: 6px 0 !important; }
+  .character .highest, .character .leader, #highestBid, #leader { font-size: 17px !important; }
+  .players { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 7px !important; margin-top: 7px !important; align-items: start; }
+  .player { padding: 9px !important; border-radius: 12px !important; }
+  .player-name { font-size: 15px !important; line-height: 1.2 !important; }
+  .player-label { font-size: 9px !important; }
+  .budget { font-size: 27px !important; margin-top: 3px !important; }
+  .budget small { font-size: 10px !important; }
+  .current-bid { margin-top: 7px !important; padding-top: 6px !important; gap: 2px !important; font-size: 10px !important; flex-wrap: wrap; }
+  .current-bid strong { font-size: 20px !important; }
+  .current-bid small { font-size: 10px !important; }
+  .turn-label { font-size: 10px !important; margin: 5px 0 !important; }
+  .bid-controls { grid-template-columns: 1fr 1fr !important; gap: 5px !important; margin-top: 7px !important; }
+  .bid-controls button { min-width: 0 !important; min-height: 43px !important; padding: 7px 3px !important; font-size: 11px !important; line-height: 1.15 !important; overflow-wrap: anywhere; }
+  .bid-controls .bid-plus { font-size: 14px !important; }
+  .bid-controls .win-button { grid-column: 1 / -1 !important; min-height: 40px !important; font-size: 11px !important; }
+  .character-list { font-size: 10px !important; margin-top: 7px !important; padding-top: 7px !important; }
+  .actions { gap: 5px !important; }
+  .actions button { min-height: 38px !important; padding: 7px 4px !important; font-size: 11px !important; }
+}
+@media (max-width: 380px) {
+  header h1 { font-size: 22px !important; }
+  .player { padding: 7px !important; }
+  .bid-controls button { font-size: 10px !important; }
+  .budget { font-size: 24px !important; }
+}
+
+
+/* BIG REDESIGN: phone auction cockpit. All three players fit in one compact row. */
+@media (max-width: 700px) {
+  html, body { margin:0 !important; padding:0 !important; }
+  body { font-size:12px !important; }
+  header { padding:7px 8px 3px !important; }
+  header h1 { font-size:20px !important; letter-spacing:.4px !important; margin:0 !important; }
+  header p { display:none !important; }
+  main { padding:4px 6px 10px !important; max-width:none !important; }
+  .panel { padding:8px !important; margin-bottom:6px !important; border-radius:11px !important; }
+  .auction-top { display:flex !important; align-items:center !important; justify-content:space-between !important; gap:5px !important; margin:0 0 6px !important; }
+  .auction-top .status, #status { font-size:10px !important; letter-spacing:.4px !important; }
+  .auction-top .round, #round { font-size:10px !important; }
+  .auction-top button, #newAuction { padding:6px 8px !important; font-size:10px !important; }
+  .character { padding:8px !important; margin:0 0 6px !important; border-radius:12px !important; }
+  .character .section-title, .character .eyebrow { font-size:9px !important; letter-spacing:1px !important; margin:0 !important; }
+  #characterDisplay { font-size:23px !important; line-height:1.05 !important; margin:4px 0 6px !important; }
+  #nextCharacterBtn { width:auto !important; min-height:34px !important; padding:7px 12px !important; font-size:11px !important; }
+  #poolStatus { font-size:9px !important; line-height:1.2 !important; margin:4px 0 !important; }
+  .bid-info { margin-top:4px !important; gap:5px !important; flex-wrap:wrap !important; }
+  .bid-number { font-size:10px !important; }
+  #highestBid, #leader { font-size:14px !important; }
+  #winnerBanner { padding:4px !important; font-size:11px !important; }
+  #players { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:5px !important; margin-top:5px !important; align-items:start !important; }
+  .player { min-width:0 !important; padding:6px 5px !important; border-radius:10px !important; }
+  .player-name { font-size:11px !important; line-height:1.15 !important; min-height:24px !important; }
+  .player-label { font-size:8px !important; line-height:1.1 !important; }
+  .budget { font-size:21px !important; margin:2px 0 0 !important; line-height:1.05 !important; }
+  .budget small { font-size:8px !important; }
+  .current-bid { display:block !important; margin-top:5px !important; padding-top:4px !important; font-size:8px !important; }
+  .current-bid strong { display:block !important; font-size:17px !important; line-height:1.1 !important; }
+  .current-bid small { font-size:8px !important; }
+  .turn-label { font-size:8px !important; min-height:17px !important; margin:3px 0 !important; }
+  .bid-controls { display:flex !important; flex-direction:column !important; gap:4px !important; margin-top:5px !important; }
+  .bid-controls button { width:100% !important; min-width:0 !important; min-height:31px !important; padding:4px 2px !important; font-size:9px !important; line-height:1.1 !important; white-space:normal !important; overflow-wrap:anywhere !important; border-radius:7px !important; }
+  .bid-controls .bid-plus { font-size:11px !important; }
+  .bid-controls .win-button { min-height:32px !important; font-size:9px !important; }
+  .character-list { font-size:9px !important; margin-top:5px !important; padding-top:4px !important; }
+  .character-list > div { display:none !important; }
+  .character-list strong { font-size:8px !important; }
+  #game > .panel:last-child { margin-top:6px !important; padding:6px !important; }
+  #game > .panel:last-child .section-title { font-size:9px !important; margin-bottom:4px !important; }
+  .actions { gap:4px !important; }
+  .actions button { min-height:30px !important; padding:5px 3px !important; font-size:9px !important; }
+  #game > .panel:last-child .notice { display:none !important; }
+}
+@media (max-width: 380px) {
+  header h1 { font-size:18px !important; }
+  .player { padding:5px 3px !important; }
+  .player-name { font-size:10px !important; }
+  .budget { font-size:18px !important; }
+  .bid-controls button { font-size:8px !important; }
+}
+
+
+/* Screenshot-inspired esports auction theme */
+:root{--bg:#020714;--panel:#07152a;--border:#164e86;--blue:#16cfff;--purple:#a12cff;--green:#00f0a0;--red:#ff285f;--gold:#ffc247;--text:#f5f8ff;--muted:#9ab2d9}
+html{background:#020714}
+body{
+ margin:0;color:var(--text);font-family:Inter,system-ui,Arial,sans-serif;min-height:100vh;
+ background:
+ radial-gradient(ellipse at 0% 8%,rgba(0,145,255,.2),transparent 32%),
+ radial-gradient(ellipse at 100% 12%,rgba(180,0,255,.18),transparent 30%),
+ radial-gradient(ellipse at 50% 55%,rgba(0,57,119,.16),transparent 55%),
+ #020714;
+}
+header{position:relative;text-align:center;padding:18px 10px 12px;border-bottom:1px solid #123456;background:linear-gradient(180deg,rgba(4,15,35,.96),rgba(2,7,20,.6))}
+header:before{content:"⚔";display:block;color:#d8e8ff;font-size:22px;line-height:1;margin-bottom:5px;text-shadow:0 0 18px #32bfff}
+header h1{font-size:clamp(29px,8vw,48px);font-weight:1000;font-style:italic;letter-spacing:-1px;line-height:.96;text-transform:uppercase;background:linear-gradient(100deg,#00d8ff 5%,#7b6cff 52%,#ff42d2 95%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 15px #126aff45)}
+header p{color:#c0d0ed;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin:9px 0 0}
+main{max-width:1000px;margin:auto;padding:10px 12px 20px}
+.panel{background:linear-gradient(145deg,rgba(5,20,43,.96),rgba(8,10,30,.97));border:1px solid #174b7b;border-radius:18px;padding:13px;margin-bottom:10px;box-shadow:0 0 22px #006cff0b,inset 0 0 20px #073d6818}
+.section-title{font-size:11px;color:#73a9ff;letter-spacing:2.5px;font-weight:900;margin-bottom:9px;text-transform:uppercase}
+button{border-radius:10px;border:1px solid transparent;font-weight:800;letter-spacing:.1px;box-shadow:0 3px 12px #0004;transition:filter .12s,transform .12s}
+button:active{filter:brightness(1.18);transform:scale(.985)}
+.primary{background:linear-gradient(110deg,#087bff,#7d22ef);color:white;border-color:#367cff;box-shadow:0 0 18px #4a2cff4d}
+.green{background:linear-gradient(110deg,#00e99b,#00b99e);color:#03241e}
+.red{background:linear-gradient(110deg,#ff245b,#a7005b);color:white}
+.gold{background:linear-gradient(110deg,#ffd35a,#ff9700);color:#281400}
+.outline{background:linear-gradient(135deg,#101f3d,#10142c);color:#eaf2ff;border-color:#304d7c}
+input,textarea{background:#040b19;border-color:#24436c;color:white}
+.auction-top{margin:0 0 10px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.status{justify-self:start;border:1px solid #00a878;border-radius:10px;padding:8px 10px;color:#00ffb0;background:#002c25;font-size:11px;box-shadow:0 0 16px #00f0a022}
+.round{justify-self:center;color:#a6c4f3;font-size:12px}
+.auction-top button{justify-self:end;background:linear-gradient(110deg,#0d1733,#19132f);border:1px solid #6846e9;box-shadow:0 0 14px #802aff25;padding:9px 12px;font-size:12px}
+.character{position:relative;overflow:hidden;text-align:center;padding:18px 12px 13px;border-radius:20px;border:1px solid #236cbb;background:radial-gradient(ellipse at 50% 0%,#122d58 0%,#07172f 53%,#090b22 100%);box-shadow:0 0 25px #087bff18,inset 0 0 35px #145aff10;margin-bottom:10px}
+.character:before,.character:after{content:"";position:absolute;width:120px;height:180px;top:20px;opacity:.13;pointer-events:none;background:linear-gradient(135deg,transparent 40%,#12cfff 41%,transparent 43%),linear-gradient(45deg,transparent 47%,#bf3bff 48%,transparent 50%);transform:rotate(20deg)}
+.character:before{left:-30px}.character:after{right:-30px;transform:rotate(-20deg)}
+.character .label{color:#55caff;font-size:11px;letter-spacing:3px;font-weight:900}
+.character h2{position:relative;font-size:clamp(32px,8vw,56px);line-height:1;margin:10px 0 13px;font-weight:1000;text-shadow:0 0 22px #6c9dff75}
+.character #nextCharacterBtn{position:relative;min-height:40px;padding:9px 16px;font-size:12px}
+#poolStatus{font-size:11px;color:#a9bfdf;margin:8px 0}
+.bid-info{gap:14px}
+.bid-number{color:#a9bfdf;font-size:11px}
+.bid-number strong{font-size:21px;color:#fff}
+#leader{overflow-wrap:anywhere}
+#players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px;align-items:stretch}
+.player{min-width:0;position:relative;overflow:hidden;padding:10px 9px;border-radius:15px;border:1px solid #087fbd;background:linear-gradient(155deg,rgba(5,33,55,.98),rgba(4,11,28,.99) 70%);box-shadow:0 0 15px #00cfff12,inset 0 0 24px #00cfff0a}
+.player:nth-child(3n+2){border-color:#7534d8;background:linear-gradient(155deg,rgba(27,12,57,.98),rgba(7,9,27,.99) 70%);box-shadow:0 0 15px #9d38ff18,inset 0 0 24px #9d38ff0b}
+.player:nth-child(3n){border-color:#a56b19;background:linear-gradient(155deg,rgba(43,28,12,.95),rgba(11,10,22,.99) 70%);box-shadow:0 0 15px #ffb72a12,inset 0 0 24px #ffb72a08}
+.player-name{font-size:14px;font-weight:900;line-height:1.2;min-height:24px}
+.player-label{font-size:9px;color:#9bb7e4;letter-spacing:.35px}
+.budget{font-size:clamp(22px,5vw,31px);font-weight:1000;color:#19caff;line-height:1.05;margin:3px 0 8px}
+.budget small{font-size:10px}
+.current-bid{display:block;border-top:1px solid #234064;margin-top:6px;padding-top:6px;font-size:9px}
+.current-bid strong{display:block;font-size:22px;line-height:1.1;margin-top:2px}
+.turn-label{min-height:18px;margin:7px 0 4px;font-size:9px;font-weight:900;color:#00f0b0}
+.bid-controls{display:flex;flex-direction:column;gap:5px;margin-top:5px}
+.bid-controls button{width:100%;min-width:0;min-height:36px;padding:6px 4px;font-size:10px;line-height:1.12;white-space:normal;overflow-wrap:anywhere;border-radius:9px}
+.bid-controls .bid-minus{background:linear-gradient(135deg,#142844,#17203a);color:#b6d5f4;border:1px solid #25446a}
+.bid-controls .bid-plus{background:linear-gradient(110deg,#00efa4,#00b8a8);color:#03241d;font-size:12px!important;border-color:#00f0ad;box-shadow:0 0 13px #00e6a42b}
+.bid-controls .win-button{background:linear-gradient(110deg,#30205b,#392044);border:1px solid #6c4aa0;color:#ffd36c;font-size:9px}
+.character-list{font-size:10px;margin-top:8px;padding-top:7px;border-top:1px solid #253a5c;color:#bfd3f4}
+.character-list strong{color:#eef5ff}
+.actions{gap:7px}
+.actions button{font-size:11px;min-height:42px}
+#game > .panel:last-child{border-color:#214b82}
+#game > .panel:last-child .notice{font-size:10px}
+#awardModal .award-dialog{background:linear-gradient(145deg,#091d3b,#160e31);border-color:#4d69a7;box-shadow:0 0 35px #255bff35}
+.award-eyebrow{color:#47d6ff}
+@media(max-width:700px){
+ header{padding:12px 8px 9px}
+ header:before{font-size:17px;margin-bottom:4px}
+ header h1{font-size:clamp(27px,8vw,38px)}
+ header p{font-size:9px;letter-spacing:2px;margin-top:6px}
+ main{padding:7px 7px 14px}
+ .panel{padding:9px;margin-bottom:7px;border-radius:14px}
+ .auction-top{grid-template-columns:1fr auto;gap:5px;margin-bottom:7px}
+ .status{font-size:9px;padding:7px}
+ .round{grid-column:1;grid-row:2;justify-self:start;font-size:10px}
+ .auction-top button{grid-column:2;grid-row:1/3;padding:8px;font-size:10px}
+ .character{padding:13px 7px 10px;border-radius:16px}
+ .character .label{font-size:9px;letter-spacing:2px}
+ .character h2{font-size:clamp(32px,10vw,45px);margin:8px 0 10px}
+ .character #nextCharacterBtn{width:auto;max-width:100%;font-size:11px;min-height:37px;padding:8px 10px}
+ #poolStatus{font-size:9px;margin:6px 0}
+ .bid-info{gap:8px}
+ .bid-number{font-size:9px}
+ .bid-number strong{font-size:17px}
+ #players{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .player{padding:8px 5px;border-radius:12px}
+ .player-name{font-size:11px;min-height:26px}
+ .player-label{font-size:7.5px}
+ .budget{font-size:clamp(18px,5.5vw,25px);margin:3px 0 7px}
+ .budget small{font-size:8px}
+ .current-bid{font-size:8px;padding-top:5px}
+ .current-bid strong{font-size:18px}
+ .turn-label{font-size:8px;min-height:17px}
+ .bid-controls{gap:4px}
+ .bid-controls button{min-height:34px;font-size:9px;padding:5px 2px}
+ .bid-controls .bid-plus{font-size:10px!important}
+ .bid-controls .win-button{font-size:8px}
+ .character-list{font-size:8px}
+ .character-list > div{display:none}
+ .actions{gap:5px}
+ .actions button{min-height:36px;font-size:9px;padding:7px 4px}
+ #game > .panel:last-child .notice{display:none}
+}
+
+</style>
+</head>
+<body>
+<header><h1>CHARACTER AUCTION</h1><p>One character. One winning bid. Build your ultimate team.</p></header>
+<main>
+<section class="panel" id="setup">
+<div class="section-title">HOST SETUP</div>
+<div class="grid">
+<div class="field"><label for="startingBudget">Starting budget per player</label><input id="startingBudget" type="number" min="1" value="20"></div>
+<div class="field"><label for="bidStep">Bid increase per tap</label><input id="bidStep" type="number" min="1" value="1"></div>
+<div class="field"><label for="characterLimit">Character limit per player</label><input id="characterLimit" type="number" min="1" value="10"></div>
+<div class="field"><label for="skipLimit">Skip limit per player, per character</label><input id="skipLimit" type="number" min="0" value="2"></div>
+<div class="field"><label for="name1">Player 1 name</label><input id="name1" value="Player 1" maxlength="30"></div>
+<div class="field"><label for="name2">Player 2 name</label><input id="name2" value="Player 2" maxlength="30"></div>
+</div>
+<div id="extraPlayers" class="grid" style="margin-top:10px"></div>
+<button type="button" class="outline full" style="margin-top:10px" onclick="addSetupPlayer()">＋ Add Player</button>
+<div class="field setup-bottom"><label for="pool">Private character pool (one name per line)</label><textarea id="pool" rows="5" placeholder="Thor&#10;Loki&#10;Doctor Strange&#10;Doctor Doom"></textarea><div class="notice">This list is hidden during the auction. You announce each character manually.</div></div>
+<button class="primary full" style="margin-top:14px" onclick="startGame()">▶ START AUCTION</button>
+</section>
+<section id="game" class="hidden">
+<div class="auction-top"><div class="status" id="status">● AUCTION LIVE</div><div class="round">Auction #<span id="round">1</span></div><button class="outline" id="newAuction" onclick="newAuction()">＋ New Auction</button></div>
+<section class="panel character"><div class="label">NOW UP FOR AUCTION</div><h2 id="characterDisplay">Ready to draw a character</h2><div class="bid-info"><button class="primary" id="nextCharacterBtn" onclick="nextCharacter()">🎲 Pick Random Character</button></div><div class="notice" id="poolStatus">Your prepared character list stays hidden.</div><div class="bid-info" style="margin-top:14px"><span class="bid-number">Highest bid: <strong id="highestBid">0</strong> pts</span><span class="bid-number">Leading: <strong id="leader">No bids</strong></span></div></section>
+<div id="winnerBanner" class="hidden"></div>
+<div id="saleToast" class="hidden" role="status" style="position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:9999;width:calc(100% - 28px);max-width:440px;background:#0b3028;border:1px solid #19d89a;color:#eafff7;padding:16px;border-radius:14px;box-shadow:0 12px 40px #0009;text-align:center;font-weight:800">
+ <div id="saleToastText"></div>
+ <button class="green" style="margin-top:10px;padding:8px 16px" onclick="closeSaleToast()">OK</button>
+</div>
+<div id="awardModal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="awardModalTitle" aria-describedby="awardModalText">
+ <div class="award-backdrop" onclick="closeAwardModal()"></div>
+ <div class="award-dialog">
+  <div class="award-icon">🏆</div>
+  <div class="award-eyebrow">CONFIRM SALE</div>
+  <h3 id="awardModalTitle">Award character?</h3>
+  <p id="awardModalText"></p>
+  <div class="award-actions">
+   <button type="button" class="outline" onclick="closeAwardModal()">Cancel</button>
+   <button type="button" class="primary" onclick="confirmAward()">Confirm sale</button>
+  </div>
+ </div>
+</div>
+<section class="panel hidden" id="exportPanel" style="margin-top:12px">
+  <div class="section-title">COPY YOUR BATTLE PROMPT</div>
+  <p style="font-size:13px;color:var(--muted);margin-top:0">Copy this text and paste it into ChatGPT to simulate a fair battle between all teams.</p>
+  <textarea id="battlePrompt" rows="12" readonly aria-label="Copyable battle prompt"></textarea>
+  <div class="actions" style="margin-top:10px">
+    <button class="primary" onclick="copyBattlePrompt()">📋 Copy Prompt</button>
+    <button class="outline" onclick="selectBattlePrompt()">Select Text</button>
+  </div>
+  <div id="copyStatus" class="notice" aria-live="polite"></div>
+</section>
+<div class="players" id="players"></div>
+<section class="panel" style="margin-top:14px"><div class="section-title">HOST CONTROLS</div><div class="actions"><button class="outline" onclick="resetBids()">Reset Current Bids</button><button class="gold" onclick="finishAuction()">Finish Auction</button><button class="red" onclick="resetGame()">Reset Game</button><button class="outline" onclick="editSetup()">Edit Setup</button></div><div class="notice">Pick a random character, tap +Bid to raise bids, then award the winner. Won characters are listed on each player card.</div></section>
+</section>
+</main>
+<script>
+let players=[],characterPool=[],round=1,auctionFinished=false,gameStarted=false,currentCharacter="",highestBid=0,leaderId=null,awarded=false;
+let setupPlayerCount=2, characterLimit=10, skipLimit=2, currentTurnIndex=0, openingPlayerIndex=0, pendingAwardId=null, openerAdvancedForCurrent=false, openingDecisionPending=true;
+const $=id=>document.getElementById(id);
+function addSetupPlayer(){
+ if(gameStarted)return;
+ setupPlayerCount++;
+ const n=setupPlayerCount;
+ const wrap=document.createElement("div");
+ wrap.className="field";
+ wrap.id="setupPlayerWrap"+n;
+ wrap.innerHTML='<label for="name'+n+'">Player '+n+' name</label><div style="display:flex;gap:6px"><input id="name'+n+'" value="Player '+n+'" maxlength="30"><button type="button" class="red" aria-label="Remove player '+n+'" onclick="removeSetupPlayer('+n+')">×</button></div>';
+ $("extraPlayers").appendChild(wrap);
+}
+function removeSetupPlayer(n){
+ const el=$("setupPlayerWrap"+n);
+ if(el)el.remove();
+}
+function save(){
+ try{
+  localStorage.setItem("characterAuctionState",JSON.stringify({
+   version:2,players,round,auctionFinished,gameStarted,currentCharacter,highestBid,leaderId,awarded,characterPool,
+   characterLimit,skipLimit,currentTurnIndex,openingPlayerIndex,openerAdvancedForCurrent,openingDecisionPending,
+   setupPlayerCount,startingBudget:$("startingBudget")?.value,bidStep:$("bidStep")?.value,
+   setupCharacterLimit:$("characterLimit")?.value,setupSkipLimit:$("skipLimit")?.value,
+   poolText:$("pool")?.value
+  }));
+ }catch(e){}
+}
+function restoreSavedGame(){
+ try{
+  const raw=localStorage.getItem("characterAuctionState");
+  if(!raw)return;
+  const d=JSON.parse(raw);
+  if(!d||!Array.isArray(d.players)||!Array.isArray(d.characterPool)||!d.players.length)return;
+  players=d.players;round=d.round||1;auctionFinished=!!d.auctionFinished;gameStarted=!!d.gameStarted;
+  currentCharacter=d.currentCharacter||"";highestBid=Number(d.highestBid)||0;leaderId=d.leaderId??null;awarded=!!d.awarded;
+  characterPool=d.characterPool;characterLimit=Number(d.characterLimit)||10;skipLimit=Number(d.skipLimit)||2;
+  currentTurnIndex=Number(d.currentTurnIndex)||0;openingPlayerIndex=Number(d.openingPlayerIndex)||0;
+  openerAdvancedForCurrent=!!d.openerAdvancedForCurrent;openingDecisionPending=d.openingDecisionPending!==false;
+  setupPlayerCount=Number(d.setupPlayerCount)||players.length;
+  if(d.startingBudget!==undefined)$("startingBudget").value=d.startingBudget;
+  if(d.bidStep!==undefined)$("bidStep").value=d.bidStep;
+  if(d.setupCharacterLimit!==undefined)$("characterLimit").value=d.setupCharacterLimit;
+  if(d.setupSkipLimit!==undefined)$("skipLimit").value=d.setupSkipLimit;
+  if(typeof d.poolText==="string")$("pool").value=d.poolText;
+  $("setup").classList.add("hidden");$("game").classList.remove("hidden");$("exportPanel").classList.add("hidden");
+  $("characterDisplay").textContent=currentCharacter||"Ready to draw a character";
+  $("poolStatus").textContent=currentCharacter
+   ? characterPool.length+" characters remaining in the hidden pool. Game restored."
+   : characterPool.length+" characters remaining in the hidden pool. Game restored.";
+  $("nextCharacterBtn").disabled=auctionFinished||!characterPool.length;
+  $("winnerBanner").classList.add("hidden");
+  render();
+ }catch(e){}
+}
+function startGame(){
+ const budget=Number($("startingBudget").value),step=Number($("bidStep").value),limit=Number($("characterLimit").value),skips=Number($("skipLimit").value);
+ if(!Number.isFinite(budget)||budget<1||!Number.isFinite(step)||step<1||!Number.isInteger(limit)||limit<1||!Number.isInteger(skips)||skips<0)return alert("Enter a valid budget, bid increase, character limit, and skip limit.");
+ characterLimit=limit;skipLimit=skips;currentTurnIndex=0;openingPlayerIndex=0;
+ const nameInputs=Array.from(document.querySelectorAll('#setup input[id^="name"]')).filter(el=>el.offsetParent!==null);
+ const names=nameInputs.map((el,i)=>el.value.trim()||"Player "+(i+1));
+ if(names.length<2)return alert("Add at least two players.");
+ if(new Set(names.map(n=>n.toLowerCase())).size!==names.length)return alert("Please use a different name for each player.");
+ players=names.map((name,id)=>({id,name,budget,bid:0,spent:0,won:[],skipsRemaining:skipLimit,skippedCurrent:false}));
+ openingPlayerIndex=Math.floor(Math.random()*players.length);currentTurnIndex=openingPlayerIndex;
+ characterPool=$("pool").value.split("\n").map(s=>s.trim()).filter(Boolean);round=1;auctionFinished=false;gameStarted=true;currentCharacter="";highestBid=0;leaderId=null;awarded=false;
+ $("setup").classList.add("hidden");$("game").classList.remove("hidden");$("exportPanel").classList.add("hidden");$("characterDisplay").textContent="Ready to draw a character";$("poolStatus").textContent=characterPool.length+" characters remaining in the hidden pool.";$("nextCharacterBtn").disabled=characterPool.length===0;$("winnerBanner").classList.add("hidden");render();save();
+}
+function nextCharacter(){
+ if(auctionFinished)return alert("The auction has finished.");
+ if(players.every(p=>p.won.length>=characterLimit)){
+   $("characterDisplay").textContent="Character limit reached";
+   $("poolStatus").textContent="Every player has reached the limit of "+characterLimit+" characters.";
+   $("nextCharacterBtn").disabled=true;return;
+ }
+ if(!characterPool.length){
+   $("characterDisplay").textContent="Character pool is empty";
+   $("poolStatus").textContent="No characters left. Reset the game to import a new list.";
+   $("nextCharacterBtn").disabled=true;return;
+ }
+ const index=Math.floor(Math.random()*characterPool.length);
+ currentCharacter=characterPool.splice(index,1)[0];
+ highestBid=0;leaderId=null;awarded=false;openerAdvancedForCurrent=false;openingDecisionPending=true;
+ players.forEach(p=>{p.bid=0;p.skippedCurrent=false;});
+ $("characterDisplay").textContent=currentCharacter;
+ $("poolStatus").textContent=characterPool.length+" characters remaining in the hidden pool.";
+ $("winnerBanner").classList.add("hidden");
+ // Start with the current opening player, skipping anyone ineligible.
+ currentTurnIndex=openingPlayerIndex;
+ advanceTurn(true);render();save();
+}
+function advanceTurn(includeCurrent=false){
+ if(!players.length)return;
+ const step=Math.max(1,Number($("bidStep").value)||1);
+ const firstOffset=includeCurrent?0:1;
+ for(let n=firstOffset;n<players.length+firstOffset;n++){
+   const idx=(currentTurnIndex+n)%players.length;
+   const p=players[idx];
+   if(!p.skippedCurrent && p.budget>=highestBid+step && p.won.length<characterLimit){
+     currentTurnIndex=idx;render();save();return;
+   }
+ }
+ $("poolStatus").textContent="No eligible bidders left. The next character will open with "+players[(openingPlayerIndex+1)%players.length].name+".";
+ // Advance the opener once when this character ends without a sale.
+ if(!openerAdvancedForCurrent){
+   openingPlayerIndex=(openingPlayerIndex+1)%players.length;
+   currentTurnIndex=openingPlayerIndex;
+   openerAdvancedForCurrent=true;
+ }
+ render();save();
+}
+function isOpeningBidderId(id){return players[openingPlayerIndex]?.id===id;}
+function placeBid(id){
+ if(auctionFinished||awarded)return;
+ if(!currentCharacter)return alert("Pick a character first.");
+ const p=players.find(p=>p.id===id);
+ if(players[currentTurnIndex]?.id!==id)return alert("It's "+(players[currentTurnIndex]?.name||"another player's")+" turn to bid.");
+ if(p.skippedCurrent)return alert(p.name+" has already skipped this character.");
+ if(p.won.length>=characterLimit)return alert(p.name+" has reached the character limit.");
+ const step=Math.max(1,Number($("bidStep").value)||1);
+ const next=highestBid+step;
+ if(next>p.budget)return alert(p.name+" does not have enough remaining budget to bid "+next+" points.");
+ p.bid=next;highestBid=next;leaderId=id;
+ if(isOpeningBidderId(id))openingDecisionPending=false;
+ advanceTurn();
+}
+function skipTurn(id){
+ if(auctionFinished||awarded||!currentCharacter)return;
+ const p=players.find(p=>p.id===id);
+ if(players[currentTurnIndex]?.id!==id)return alert("It's "+(players[currentTurnIndex]?.name||"another player's")+" turn.");
+ const isOpeningBidder = players[openingPlayerIndex]?.id === p.id;
+ // The opening bidder spends a token only if they skip their first decision.
+ // If they bid first, their later pass is free, just like everyone else's.
+ if(isOpeningBidder && openingDecisionPending){
+   if(p.skipsRemaining<=0)return alert(p.name+" has no skips remaining.");
+   p.skipsRemaining--;
+ }
+ if(isOpeningBidder)openingDecisionPending=false;
+ p.skippedCurrent=true;
+ advanceTurn();
+ save();
+}
+function undoBid(id){if(auctionFinished||awarded)return;const p=players.find(p=>p.id===id),step=Math.max(1,Number($("bidStep").value)||1);p.bid=Math.max(0,p.bid-step);highestBid=Math.max(0,...players.map(p=>p.bid));leaderId=players.find(p=>p.bid===highestBid&&highestBid>0)?.id??null;render();save()}
+function award(id){
+ if(auctionFinished||awarded)return;
+ if(!currentCharacter)return alert("Pick a character first.");
+ const w=players.find(p=>p.id===id);
+ if(w.won.length>=characterLimit)return alert(w.name+" has reached the character limit of "+characterLimit+".");
+ if(w.bid<=0||w.bid<highestBid)return alert("Only the highest bidder can win.");
+ pendingAwardId=id;
+ $("awardModalText").textContent=currentCharacter+" will be sold to "+w.name+" for "+w.bid+" points.";
+ $("awardModal").classList.remove("hidden");
+ return;
+}
+function closeAwardModal(){
+ $("awardModal").classList.add("hidden");
+ pendingAwardId=null;
+}
+function confirmAward(){
+ if(pendingAwardId===null)return;
+ const id=pendingAwardId;
+ $("awardModal").classList.add("hidden");
+ pendingAwardId=null;
+ const w=players.find(p=>p.id===id);
+ if(!w||auctionFinished||awarded||!currentCharacter||w.bid<=0||w.bid<highestBid||w.won.length>=characterLimit)return;
+ const soldCharacter=currentCharacter,soldPrice=w.bid;
+ w.budget-=soldPrice;w.spent+=soldPrice;w.won.push({name:soldCharacter,price:soldPrice});
+ $("winnerBanner").textContent="🏆 "+w.name+" wins "+soldCharacter+" for "+soldPrice+" points!";
+ $("winnerBanner").classList.remove("hidden");
+ $("saleToastText").textContent=soldCharacter+" sold to "+w.name+" for "+soldPrice+" points!";
+ $("saleToast").classList.remove("hidden");
+ // Next character's first bid starts with the player after the previous winner.
+ openingPlayerIndex=(openingPlayerIndex+1)%players.length;
+ currentTurnIndex=openingPlayerIndex;
+ openerAdvancedForCurrent=true;
+ round++;currentCharacter="";highestBid=0;leaderId=null;awarded=false;
+ players.forEach(p=>{p.bid=0;p.skippedCurrent=false;});
+ $("characterDisplay").textContent="Ready to draw the next character";
+ $("poolStatus").textContent=characterPool.length+" characters remaining in the hidden pool.";
+ $("nextCharacterBtn").disabled=auctionFinished||!characterPool.length||players.every(p=>p.won.length>=characterLimit);
+ render();save();
+}
+function closeSaleToast(){$("saleToast").classList.add("hidden")}
+function newAuction(){if(auctionFinished)return alert("The auction has finished.");if(!confirm("Start the next character auction?"))return;round++;currentCharacter="";highestBid=0;leaderId=null;awarded=false;players.forEach(p=>{p.bid=0;p.skippedCurrent=false;});$("characterDisplay").textContent="Ready to draw a character";$("poolStatus").textContent=characterPool.length+" characters remaining in the hidden pool.";$("nextCharacterBtn").disabled=characterPool.length===0;$("winnerBanner").classList.add("hidden");render();save()}
+function resetBids(){if(awarded)return alert("This character has already been awarded. Start a new auction.");if(!confirm("Clear all bids for this character?"))return;players.forEach(p=>p.bid=0);highestBid=0;leaderId=null;render();save()}
+function finishAuction(){
+ if(!confirm("Finish the auction and create your ChatGPT battle prompt?"))return;
+ auctionFinished=true;
+ render();
+ buildBattlePrompt();
+ $("exportPanel").classList.remove("hidden");
+ save();
+ $("exportPanel").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function buildBattlePrompt(){
+ const teams=players.map(p=>{
+   const characters=p.won.length ? p.won.map(c=>c.name).join(", ") : "No characters";
+   return p.name+": "+characters;
+ }).join("\\n\\n");
+ const prompt="Compare these teams and declare who would win in a fair battle. Briefly explain why.\\n\\n"+teams;
+ $("battlePrompt").value=prompt;
+ $("copyStatus").textContent="";
+}
+async function copyBattlePrompt(){
+ const field=$("battlePrompt");
+ try{
+   if(navigator.clipboard && window.isSecureContext){
+     await navigator.clipboard.writeText(field.value);
+   }else{
+     field.focus();field.select();field.setSelectionRange(0,field.value.length);
+     const ok=document.execCommand("copy");
+     if(!ok)throw new Error("Copy command failed");
+   }
+   $("copyStatus").textContent="Copied! Paste the prompt into ChatGPT.";
+ }catch(e){
+   selectBattlePrompt();
+   $("copyStatus").textContent="Text selected. Tap Copy from your browser menu, or use Select Text.";
+ }
+}
+function selectBattlePrompt(){
+ const field=$("battlePrompt");
+ field.focus();field.select();field.setSelectionRange(0,field.value.length);
+ $("copyStatus").textContent="Prompt selected. Copy it and paste into ChatGPT.";
+}
+function resetGame(){if(!confirm("Reset everything and return to setup?"))return;closeAwardModal();players=[];characterPool=[];round=1;auctionFinished=false;gameStarted=false;currentCharacter="";highestBid=0;leaderId=null;awarded=false;try{localStorage.removeItem("characterAuctionState")}catch(e){}$("game").classList.add("hidden");$("setup").classList.remove("hidden");$("exportPanel").classList.add("hidden")}
+function editSetup(){if(!confirm("Return to setup? Your current game will be reset."))return;resetGame()}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function render(){
+ $("round").textContent=round;$("highestBid").textContent=highestBid;$("leader").textContent=leaderId===null?"No bids":players.find(p=>p.id===leaderId)?.name||"No bids";$("status").textContent=auctionFinished?"● AUCTION FINISHED":"● AUCTION LIVE";$("newAuction").disabled=auctionFinished;
+ $("nextCharacterBtn").disabled=auctionFinished||awarded||!characterPool.length||players.every(p=>p.won.length>=characterLimit);
+ $("players").innerHTML=players.map(p=>`<article class="player"><div class="player-name">${esc(p.name)}</div><div class="player-label">REMAINING BUDGET</div><div class="budget">${p.budget}<small> pts</small></div><div class="current-bid"><span class="player-label">CURRENT BID</span><strong>${p.bid} <small style="font-size:11px">pts</small></strong></div><div class="player-label" style="margin-top:10px;color:${players[currentTurnIndex]?.id===p.id?'var(--green)':'var(--muted)'}">${p.skippedCurrent?'SKIPPED THIS CHARACTER':(players[currentTurnIndex]?.id===p.id?'● BIDDING TURN':'WAITING')}</div><div class="bid-controls"><button class="bid-minus" onclick="undoBid(${p.id})" ${auctionFinished||awarded||p.bid===0?"disabled":""}>− Undo</button><button class="bid-plus" onclick="placeBid(${p.id})" ${auctionFinished||awarded||!currentCharacter||players[currentTurnIndex]?.id!==p.id||p.won.length>=characterLimit||highestBid+Math.max(1,Number($("bidStep").value)||1)>p.budget?"disabled":""}>+${Math.max(1,Number($("bidStep").value)||1)} Bid</button><button class="outline" onclick="skipTurn(${p.id})" ${auctionFinished||awarded||!currentCharacter||players[currentTurnIndex]?.id!==p.id||p.skippedCurrent||(players[openingPlayerIndex]?.id===p.id&&p.skipsRemaining<=0)?"disabled":""}>${players[openingPlayerIndex]?.id===p.id?`Skip (1 token, ${p.skipsRemaining} left)`:'Pass (free)'}</button><button class="win-button" onclick="award(${p.id})" ${auctionFinished||awarded||p.bid===0||p.bid<highestBid||p.won.length>=characterLimit?"disabled":""}>🏆 Award to ${esc(p.name)}</button></div><div class="character-list"><strong>Characters won (${p.won.length})</strong>${p.won.length?p.won.map(c=>`<div style="margin-top:7px">• ${esc(c.name)} <span style="color:var(--green)">(${c.price} pts)</span></div>`).join(""):'<div style="margin-top:7px;color:var(--muted)">No characters won yet</div>'}<div style="margin-top:8px;color:var(--muted)">Total spent: ${p.spent} pts</div></div></article>`).join("");
+ if(auctionFinished){$("winnerBanner").textContent="AUCTION FINISHED";$("winnerBanner").classList.remove("hidden")}
+}
+document.addEventListener("DOMContentLoaded",restoreSavedGame);
+</script>
+</body>
+</html>
